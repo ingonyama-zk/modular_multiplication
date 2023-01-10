@@ -1,3 +1,4 @@
+import random
 from math import *
 from random import *
 
@@ -53,7 +54,7 @@ def mp_lsb_multiply(A, B, bits_in_digit, num_digits, return_extra_digit=False):
         return c[:num_digits]
 
 
-def mp_lsb_2_extra_bits(A, B, bits_in_digit, num_digits):
+def mp_lsb_diagonal(A, B, bits_in_digit, num_digits):
     if num_digits >= 2**bits_in_digit:
         raise("MP multiplier works only if: num_digits >= 2**bits_in_digit")
     c = [0]*(num_digits*2 + 1)
@@ -66,7 +67,7 @@ def mp_lsb_2_extra_bits(A, B, bits_in_digit, num_digits):
         [c[l], c[l+1]] = [add_res[0], add_res[1]]
         c[l+2] = c[l+2] + add_res[2]
 
-    return c[l] & 3
+    return c[l]
 
 
 def mp_msb_multiply(A, B, bits_in_digit, num_digits):
@@ -154,7 +155,7 @@ def unit_test_mp_full_multiply():
         print("ERROR!")
 
 
-def mp_adder(A, B, bits_in_digit, num_digits): # returns num_digits + 1 number
+def mp_adder(A, B, bits_in_digit, num_digits):  # returns num_digits + 1 number
     C = [0] * (num_digits + 1)
     carry = 0
     for i in range(num_digits):
@@ -164,77 +165,43 @@ def mp_adder(A, B, bits_in_digit, num_digits): # returns num_digits + 1 number
     return C
 
 
+def shifter(A, shift, bits_in_digit, num_digits):
+    a = digits_to_num(A, bits_in_digit)
+    a_shift = a << shift
+    A_SHIFT = num_to_digits(a_shift, bits_in_digit, num_digits)
+    return A_SHIFT
 
-def barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit, num_digits, z=0):
-    # multiprecision part
+
+def barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit, num_digits, n):
+
+    # Full multiply and break into LSB, MSB parts
     AB = mp_full_multiply(A, B, bits_in_digit, num_digits)
-    if z == 0:
-        n = num_digits * bits_in_digit
-        AB_msb = AB[num_digits:2*num_digits]
-        AB_lsb_p1 = AB[:num_digits+1]
-        AB_lsb_p1[num_digits] = AB_lsb_p1[num_digits] & 3  # take only two extra bits, not a whole digit.
-    else:  # n < num_digits*bits_in_digts
-        n = num_digits*bits_in_digit - z
-        ab = digits_to_num(AB, bits_in_digit)
-        ab_s = (ab >> n) << n # remove the content of first n bits
-        ab_s = ab_s << 2*z
-        ab_s_msb = ab_s >> (num_digits*bits_in_digit)
-        AB_msb = num_to_digits(ab_s_msb, bits_in_digit, num_digits)
-        ab_lsb = ab & int('1'*(num_digits*bits_in_digit + 2 - z), base=2)
-        AB_lsb_p1 = num_to_digits(ab_lsb, bits_in_digit, num_digits+1)
+    AB_lsb = AB[:num_digits+1]
 
-    # full digits multiply
-    # WITH ERROR OF UP TO 4 (3 from normal bounding + 1 for my lazy MSB multiplier
-    L = mp_msb_multiply(AB_msb, M[:num_digits], bits_in_digit, num_digits)
-    # single MSB bit multiplication by AB_msb
-    assert M[num_digits] <= 1
-    if M[num_digits] == 1:
-        L = mp_adder(L, AB_msb, bits_in_digit, num_digits)
-    else:  # just expand for extra digit
-        L = L + [0]
-
-    # L is calculated, now for debug
-    n = bits_in_digit*num_digits - z
-    ab = digits_to_num(AB, bits_in_digit)
-    ab_msb = ab >> n
-    m = digits_to_num(M, bits_in_digit)
-    l = (ab_msb * m) >> n
-    s = digits_to_num(S, bits_in_digit)
-    print("Comparison:")
-    print(f"ab_msb: {ab_msb}, {digits_to_num(AB_msb, bits_in_digit)}")
-    if digits_to_num(AB_msb, bits_in_digit) == ab_msb:
-        print("ab_MSB OK")
+    # Shift MSB if needed (fractional digit shift)
+    mk = bits_in_digit * num_digits
+    if mk != n:
+        shift = mk-n
+        AB_shift = shifter(AB, shift, bits_in_digit, num_digits*2)
+        AB_msb = AB_shift[num_digits:2*num_digits]
     else:
-        print("ab_MSB ERROR")
-    print(f"l: {l}, {digits_to_num(L, bits_in_digit)}")
-    if digits_to_num(L, bits_in_digit) == l:
-        print("L OK")
-    else:
-        print("L ERROR")
-    real_l, _ = divmod(ab, s)
-    print("l offset = ", real_l - l)
+        shift = 0
+        AB_msb = AB[num_digits:2 * num_digits]
 
+    # calculate l estimator (MSB multiply)
+    L = mp_msb_multiply(AB_msb, M, bits_in_digit, num_digits)
+    # Add another AB_msb because m[n] = 1 by definition.
+    L = mp_adder(L, AB_msb, bits_in_digit, num_digits)[:num_digits]
 
-    LS = mp_lsb_multiply(L[:num_digits], S, bits_in_digit, num_digits, return_extra_digit=True)
-    # handle output 2 bits, L[:num_digits] * S effect
+    # calculate L*S (LSB multiply)
+    LS = mp_lsb_multiply(L, S, bits_in_digit, num_digits, return_extra_digit=True)
+    # Extra 2 bits handling
     lsb_mult_carry_extra = LS[num_digits]  # carry to 2^n, 2^(n+1) bits from LSB mult
-    lsb_mult_extra = mp_lsb_2_extra_bits(L[:num_digits], S, bits_in_digit, num_digits)
-    # handle output 2 digits L[num_digits] * S effect
-    l_extra_digit_term = ((L[num_digits] & 3) * (S[0] & 3)) & 3
-    LS[num_digits] = (lsb_mult_carry_extra + lsb_mult_extra + l_extra_digit_term) & 3
-
-    # LS is calculated, now for debug
-    s = digits_to_num(S, bits_in_digit)
-    ls = (l * s) & int('1' * (num_digits * bits_in_digit + 2), base=2)
-    print("Comparison:")
-    print(f"ls: {ls}, {digits_to_num(LS, bits_in_digit)}")
-    if ls == digits_to_num(LS, bits_in_digit):
-        print("ls OK")
-    else:
-        print("ls ERROR")
+    lsb_mult_extra = mp_lsb_diagonal(L, S, bits_in_digit, num_digits)
+    LS[num_digits] = (lsb_mult_carry_extra + lsb_mult_extra)
 
     # adders and sub, not in multiprecision
-    ab_lsb = digits_to_num(AB_lsb_p1, bits_in_digit)
+    ab_lsb = digits_to_num(AB_lsb, bits_in_digit)
     ls = digits_to_num(LS, bits_in_digit)
     minus_ls_plus_1 = (~ls + 1) % 2 ** (n + 2)
     r = (ab_lsb + minus_ls_plus_1) % 2 ** (n + 2)
@@ -245,13 +212,66 @@ def barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit, num_digits, 
     while r > s:
         r = r - s
         num_red += 1
-    if num_red > 4:
+    if num_red > 5:
         print("ERROR: NUM OF REDUNDENCY IS GREATER THAN 4")
 
-
-
-
     return r
+
+
+def mp_barrett_domb_wrapper(s, a, b, bits_in_digit):
+    n = len(bin(s)[2:])
+    num_digits = ceil(n / bits_in_digit)
+    m, _ = divmod(2 ** (2 * n), s)  # prime approximation, n + 1 bits
+    num_msb_zeros = num_digits * bits_in_digit - n
+    if (num_msb_zeros > 0):
+        m = m << num_msb_zeros
+    A = num_to_digits(a, bits_in_digit, num_digits)
+    B = num_to_digits(b, bits_in_digit, num_digits)
+    M = num_to_digits(m, bits_in_digit, num_digits + 1)[:num_digits]
+    S = num_to_digits(s, bits_in_digit, num_digits)
+    res = barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit=bits_in_digit, num_digits=num_digits, n=n)
+    return res
+
+
+def random_unit_test(num_rep, bits_in_digit=32):
+    seed(0)
+    corrects = 0
+    wrongs = 0
+    for i in range(num_rep):
+        s = randint(2**64, 2**512)
+        a = randint(0, s)
+        b = randint(0, s)
+        res = mp_barrett_domb_wrapper(s, a, b, bits_in_digit)
+        reference = a * b % s
+        if reference == res:
+            corrects += 1
+        else:
+            print("WRONG")
+            print(f's = {s}')
+            wrongs += 1
+    print(f"Total corrects = {corrects}")
+    print(f"Total wrongs = {wrongs}")
+
+
+def edge_unit_test(bits_in_digit=32):
+    seed(0)
+    corrects = 0
+    wrongs = 0
+    for i in range(64, 32*50):
+        s = randint(2**i, 2**(i+1))
+        a = s-1
+        b = s-1
+        res = mp_barrett_domb_wrapper(s, a, b, bits_in_digit)
+        reference = a * b % s
+        if reference == res:
+            corrects += 1
+        else:
+            print("WRONG")
+            print(f's = {s}')
+            wrongs += 1
+    print(f"Total corrects = {corrects}")
+    print(f"Total wrongs = {wrongs}")
+
 
 def main():
     a = 0x1ff2f1f0  # 16 bits
@@ -290,12 +310,17 @@ def main():
     assert s == s & (int('1'*n, base=2))
     m, _ = divmod(2 ** (2*n), p)  # prime approximation, n + 1 bits
     assert m == m & (int('1'*(n+1), base=2))
+    # shift m if needed
+    num_msb_zeros = num_digits*bits_in_digit - n
+    if (num_msb_zeros> 0):
+        m = m << num_msb_zeros
+
     # Prepare multiprecision words:
     A = num_to_digits(a, bits_in_digit, num_digits)
     B = num_to_digits(b, bits_in_digit, num_digits)
-    M = num_to_digits(m, bits_in_digit, num_digits+1)
+    M = num_to_digits(m, bits_in_digit, num_digits+1)[:num_digits]
     S = num_to_digits(s, bits_in_digit, num_digits)
-    res = barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit=bits_in_digit, num_digits=num_digits, z=z)
+    res = barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit=bits_in_digit, num_digits=num_digits, n=n)
     reference = a*b % p
     print("res = ", res)
     print("reference = ", reference)
@@ -329,5 +354,5 @@ def num_to_digits(num, bits_in_digit, num_digits):
     return words
 
 
-main()
+edge_unit_test()
 
