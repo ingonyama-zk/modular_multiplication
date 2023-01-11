@@ -73,14 +73,14 @@ def mp_lsb_diagonal(A, B, bits_in_digit, num_digits):
 def mp_msb_multiply(A, B, bits_in_digit, num_digits):
     """
     Returns [A*B]_msb + e
-    e is in [0, 1]
+    e is in [0, num_digits]
     """
     if num_digits >= 2**bits_in_digit:
         raise("MP multiplier works only if: num_digits >= 2**bits_in_digit")
     c = [0]*(num_digits*2 + 1)
-    for l in range(num_digits-1 - 4, num_digits*2 - 2 + 1):  # num_digits
-        i_min = max(0, l - (num_digits - 1))
-        i_max = min(l, num_digits - 1) + 1  # + 1 for inclusive
+    for l in range(num_digits-1, num_digits*2 - 2 + 1):  # num_digits
+        i_min = l - (num_digits - 1)
+        i_max = num_digits - 1 + 1  # + 1 for inclusive
         for i in range(i_min, i_max):
             mult_res = machine_multiply(A[i], B[l-i], bits_in_digit)
             add_res = machine_two_digit_add(mult_res, [c[l], c[l+1]], bits_in_digit)
@@ -203,8 +203,8 @@ def barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit, num_digits, 
     # adders and sub, not in multiprecision
     ab_lsb = digits_to_num(AB_lsb, bits_in_digit)
     ls = digits_to_num(LS, bits_in_digit)
-    minus_ls_plus_1 = (~ls + 1) % 2 ** (n + 2)
-    r = (ab_lsb + minus_ls_plus_1) % 2 ** (n + 2)
+    minus_ls_plus_1 = (~ls + 1) % 2 ** (n + ceil(log2(4 + num_digits)))
+    r = (ab_lsb + minus_ls_plus_1) % 2 ** (n + ceil(log2(4 + num_digits)))
     if r < 0:
         print("R < 0")
     num_red = 0
@@ -212,8 +212,8 @@ def barett_domb_reduction_multiprecision(A, B, M, S, bits_in_digit, num_digits, 
     while r > s:
         r = r - s
         num_red += 1
-    if num_red > 5:
-        print("ERROR: NUM OF REDUNDENCY IS GREATER THAN 4")
+    if num_red > 2**(num_digits) + 4:
+        print("ERROR: NUM OF REDUNDENCY IS GREATER THAN 2**num_digits + 4")
 
     return r
 
