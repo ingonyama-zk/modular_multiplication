@@ -3,7 +3,7 @@ from primitive_ops import *
 from utils import *
 
 
-def barett_domb_mp_redc(A, B, S, M, w, k, n):
+def domb_barett_mp_redc(A, B, S, M, w, k, n):
     """
     A: input number. represented by k digits.
     B: input number. represented by k digits
@@ -36,7 +36,7 @@ def barett_domb_mp_redc(A, B, S, M, w, k, n):
     # If needed, calculate extra diagonal.
     if z < 4 + log2(k/(2**z)):
         lsb_mult_carry_extra = LS[k]
-        lsb_mult_extra = mp_lsb_diagonal(L, S, w, k)
+        lsb_mult_extra = mp_lsb_extra_diagonal(L, S, w, k)
         LS[k] = (lsb_mult_carry_extra + lsb_mult_extra)
 
     # adders and sub, not in multiprecision.
@@ -58,7 +58,7 @@ def barett_domb_mp_redc(A, B, S, M, w, k, n):
     return r
 
 
-def barett_domb_mp_redc_wrapper(s, a, b, bits_in_digit):
+def domb_barett_mp_redc_wrapper(s, a, b, bits_in_digit):
     n = len(bin(s)[2:])
     num_digits = ceil(n / bits_in_digit)
     m, _ = divmod(2 ** (2 * n), s)  # prime approximation, n + 1 bits
@@ -69,7 +69,7 @@ def barett_domb_mp_redc_wrapper(s, a, b, bits_in_digit):
     B = num_to_digits(b, bits_in_digit, num_digits)
     M = num_to_digits(m, bits_in_digit, num_digits + 1)[:num_digits]
     S = num_to_digits(s, bits_in_digit, num_digits)
-    res = barett_domb_mp_redc(A, B, S, M, w=bits_in_digit, k=num_digits, n=n)
+    res = domb_barett_mp_redc(A, B, S, M, w=bits_in_digit, k=num_digits, n=n)
     return res
 
 

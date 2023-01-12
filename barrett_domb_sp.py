@@ -2,7 +2,7 @@ from math import *
 from random import *
 
 
-class mpm_barrett:
+class barrett_domb_sp:
     def __init__(self):
         self.n = 377
         self.s = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177
@@ -10,19 +10,11 @@ class mpm_barrett:
         self.m = 2 ** (2 * self.n) // self.s
         self.ms = self.m * self.s
 
-    def prime(self):
-        s = [2**self.n - 1]
-        while True:
-            try:
-                s[isprime(s[0])] = s[0] - 2
-            except IndexError:
-                return s[0]
-
     def run(self, do_print=False):
         a = randint(0, self.s - 1)
         b = randint(0, self.s - 1)
-        a = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177 - 1
-        b = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177 - 1
+        # a = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177 - 1
+        # b = 258664426012969094010652733694893533536393512754914660539884262666720468348340822774968888139573360124440321458177 - 1
         # direct calc
         ab = a * b
         _l, _r = divmod(ab, self.s)  # sim only (not for synthesis)
@@ -85,10 +77,8 @@ class mpm_barrett:
         print()
 
 
-
-
 if __name__ == '__main__':
-    mpm_ = mpm_barrett()
-    # for i in range(1000000):
-    #     mpm_.run()
+    mpm_ = barrett_domb_sp()
+    for i in range(1000000):
+        mpm_.run()
     mpm_.run(do_print=True)

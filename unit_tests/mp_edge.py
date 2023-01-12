@@ -1,5 +1,5 @@
 from random import *
-from barret_domb_mp import barett_domb_mp_redc_wrapper
+from barret_domb_mp import domb_barett_mp_redc_wrapper
 
 
 def edge_unit_test(bits_in_digit=32):
@@ -10,7 +10,7 @@ def edge_unit_test(bits_in_digit=32):
         s = randint(2**i, 2**(i+1))
         a = s-1
         b = s-1
-        res = barett_domb_mp_redc_wrapper(s, a, b, bits_in_digit)
+        res = domb_barett_mp_redc_wrapper(s, a, b, bits_in_digit)
         reference = a * b % s
         if reference == res:
             corrects += 1

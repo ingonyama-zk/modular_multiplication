@@ -1,5 +1,5 @@
 from random import *
-from barret_domb_mp import barett_domb_mp_redc_wrapper
+from barret_domb_mp import domb_barett_mp_redc_wrapper
 
 
 def random_unit_test(num_rep, bits_in_digit=32):
@@ -10,7 +10,7 @@ def random_unit_test(num_rep, bits_in_digit=32):
         s = randint(2**64, 2**512)
         a = randint(0, s)
         b = randint(0, s)
-        res = barett_domb_mp_redc_wrapper(s, a, b, bits_in_digit)
+        res = domb_barett_mp_redc_wrapper(s, a, b, bits_in_digit)
         reference = a * b % s
         if reference == res:
             corrects += 1

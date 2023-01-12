@@ -51,7 +51,7 @@ def mp_lsb_multiply(A, B, bits_in_digit, num_digits, return_extra_digit=False):
         return c[:num_digits]
 
 
-def mp_lsb_diagonal(A, B, bits_in_digit, num_digits):
+def mp_lsb_extra_diagonal(A, B, bits_in_digit, num_digits):
     if num_digits >= 2**bits_in_digit:
         raise("MP multiplier works only if: num_digits >= 2**bits_in_digit")
     c = [0]*(num_digits*2 + 1)
