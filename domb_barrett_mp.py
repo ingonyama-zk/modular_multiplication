@@ -23,13 +23,13 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
     # AB msb extraction (+ shift)
     wk = w * k
     z = (wk-n)
-    AB_shift = shifter(AB, 2 * z, w, k * 2, 'left')
+    AB_shift = mp_shifter(AB, 2 * z, w, k * 2, 'left')
     AB_msb = AB_shift[k:2 * k]
 
     # L estimation
     L = mp_msb_multiply(AB_msb, M, w, k)  # calculate l estimator (MSB multiply)
     L = mp_adder(L, AB_msb, w, k)[:k]  # Add another AB_msb because m[n] = 1
-    L = shifter(L, z, w, k, 'right')
+    L = mp_shifter(L, z, w, k, 'right')
 
     # LS calculation
     LS = mp_lsb_multiply(L, S, w, k, return_extra_digit=True)
@@ -38,6 +38,8 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
         lsb_mult_carry_extra = LS[k]
         lsb_mult_extra = mp_lsb_extra_diagonal(L, S, w, k)
         LS[k] = (lsb_mult_carry_extra + lsb_mult_extra)
+    #else:
+    #    LS = LS[:k]  # remove extra digit from lsb mult
 
     # adders and sub, not in multiprecision.
     AB_lsb = AB[:k + 1]
@@ -58,18 +60,16 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
     return r
 
 
-def domb_barett_mp_redc_wrapper(s, a, b, bits_in_digit):
+def domb_barrett_mp_redc_wrapper(s, a, b, w):
     n = len(bin(s)[2:])
-    num_digits = ceil(n / bits_in_digit)
-    m, _ = divmod(2 ** (2 * n), s)  # prime approximation, n + 1 bits
-    num_msb_zeros = num_digits * bits_in_digit - n
-    if (num_msb_zeros > 0):
-        m = m << num_msb_zeros
-    A = num_to_digits(a, bits_in_digit, num_digits)
-    B = num_to_digits(b, bits_in_digit, num_digits)
-    M = num_to_digits(m, bits_in_digit, num_digits + 1)[:num_digits]
-    S = num_to_digits(s, bits_in_digit, num_digits)
-    res = domb_barett_mp_redc(A, B, S, M, w=bits_in_digit, k=num_digits, n=n)
+    k = ceil(n / w)
+    z = k * w - n
+    m, _ = divmod(2 ** (2 * n + z), s)  # prime approximation, n + 1 bits
+    A = num_to_digits(a, w, k)
+    B = num_to_digits(b, w, k)
+    M = num_to_digits(m, w, k + 1)[:k]
+    S = num_to_digits(s, w, k)
+    res = domb_barett_mp_redc(A, B, S, M, w=w, k=k, n=n)
     return res
 
 

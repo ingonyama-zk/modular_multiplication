@@ -1,4 +1,5 @@
 from utils import *
+from math import *
 
 def machine_two_digit_add(x, y, bits_in_digit):
     """
@@ -96,7 +97,7 @@ def mp_adder(A, B, bits_in_digit, num_digits):  # returns num_digits + 1 number
     return C
 
 
-def shifter(A, shift, bits_in_digit, num_digits, direction):
+def mp_shifter(A, shift, bits_in_digit, num_digits, direction):
     a = digits_to_num(A, bits_in_digit)
     if direction == 'left':
         a_shift = a << shift
@@ -104,3 +105,17 @@ def shifter(A, shift, bits_in_digit, num_digits, direction):
         a_shift = a >> shift
     A_SHIFT = num_to_digits(a_shift, bits_in_digit, num_digits)
     return A_SHIFT
+
+
+def mp_subtract(A, B, w, n, k, z):
+    a = digits_to_num(A, w)
+    b = digits_to_num(B, w)
+    # mask = 2 ** (n + ceil(log2(4 + (k / 2 ** z)))) - 1
+    # minus_b = (~b + 1) & mask
+    # res = (a + minus_b) & mask
+    # RES = num_to_digits(res, w, k)
+    minus_ls_plus_1 = (~b + 1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
+    res = (a + minus_ls_plus_1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
+    RES = num_to_digits(res, w, k)
+    return RES
+

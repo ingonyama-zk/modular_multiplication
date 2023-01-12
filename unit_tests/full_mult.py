@@ -1,6 +1,9 @@
+import sys
+sys.path.append("..")
 from primitive_ops import mp_full_multiply
 from math import *
 from utils import num_to_digits, digits_to_num
+
 
 def unit_test_mp_full_multiply():
     a = 0xffffff

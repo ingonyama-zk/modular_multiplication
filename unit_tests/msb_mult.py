@@ -1,7 +1,6 @@
-
-from barret_domb_mp import mp_msb_multiply
-from barret_domb_mp import num_to_digits
-from barret_domb_mp import digits_to_num
+from primitive_ops import mp_msb_multiply
+from utils import num_to_digits
+from utils import digits_to_num
 
 
 def test():
