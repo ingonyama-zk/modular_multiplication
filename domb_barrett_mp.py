@@ -38,26 +38,21 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
         lsb_mult_carry_extra = LS[k]
         lsb_mult_extra = mp_lsb_extra_diagonal(L, S, w, k)
         LS[k] = (lsb_mult_carry_extra + lsb_mult_extra)
-    #else:
-    #    LS = LS[:k]  # remove extra digit from lsb mult
+    else:
+        LS = LS[:k]  # remove extra digit from lsb mult
 
     # adders and sub, not in multiprecision.
-    AB_lsb = AB[:k + 1]
-    ab_lsb = digits_to_num(AB_lsb, w)
-    ls = digits_to_num(LS, w)
-    minus_ls_plus_1 = (~ls + 1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
-    r = (ab_lsb + minus_ls_plus_1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
-    if r < 0:
-        print("R < 0")
-    num_red = 0
-    s = digits_to_num(S, w)
-    while r > s:
-        r = r - s
-        num_red += 1
-    if num_red > 2**((k / 2 ** z)) + 4:
-        print("ERROR: NUM OF REDUNDENCY IS GREATER THAN 2**num_digits + 4")
+    if z < 4 + log2(k / (2 ** z)):
+        AB_lsb = AB[:k + 1]
+    else:
+        AB_lsb = AB[:k]
 
-    return r
+    R = mp_subtract(AB_lsb, LS, w, n, k, z)
+    R, num_red = mp_subtract_red(R, S, w, k)
+
+    assert num_red < (k / 2 ** z) + 4  # check subtract redundant didn't pass bound
+
+    return R
 
 
 def domb_barrett_mp_redc_wrapper(s, a, b, w):
@@ -69,7 +64,8 @@ def domb_barrett_mp_redc_wrapper(s, a, b, w):
     B = num_to_digits(b, w, k)
     M = num_to_digits(m, w, k + 1)[:k]
     S = num_to_digits(s, w, k)
-    res = domb_barett_mp_redc(A, B, S, M, w=w, k=k, n=n)
+    RES = domb_barett_mp_redc(A, B, S, M, w=w, k=k, n=n)
+    res = digits_to_num(RES, w)
     return res
 
 

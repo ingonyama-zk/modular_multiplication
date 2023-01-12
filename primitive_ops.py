@@ -110,12 +110,19 @@ def mp_shifter(A, shift, bits_in_digit, num_digits, direction):
 def mp_subtract(A, B, w, n, k, z):
     a = digits_to_num(A, w)
     b = digits_to_num(B, w)
-    # mask = 2 ** (n + ceil(log2(4 + (k / 2 ** z)))) - 1
-    # minus_b = (~b + 1) & mask
-    # res = (a + minus_b) & mask
-    # RES = num_to_digits(res, w, k)
     minus_ls_plus_1 = (~b + 1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
     res = (a + minus_ls_plus_1) % 2 ** (n + ceil(log2(4 + (k / 2 ** z))))
-    RES = num_to_digits(res, w, k)
+    RES = num_to_digits(res, w, k+1)
     return RES
+
+
+def mp_subtract_red(R, S, w, k):
+    r = digits_to_num(R, w)
+    num_red = 0
+    s = digits_to_num(S, w)
+    while r > s:
+        r = r - s
+        num_red += 1
+    R = num_to_digits(r, w, k)
+    return R, num_red
 
