@@ -34,7 +34,7 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
     # LS calculation
     LS = mp_lsb_multiply(L, S, w, k, return_extra_digit=True)
     # If needed, calculate extra diagonal.
-    if z < 4 + log2(k/(2**z)):
+    if z < log2(4 + k/(2**z)):
         lsb_mult_carry_extra = LS[k]
         lsb_mult_extra = mp_lsb_extra_diagonal(L, S, w, k)
         LS[k] = (lsb_mult_carry_extra + lsb_mult_extra)
@@ -42,7 +42,7 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
         LS = LS[:k]  # remove extra digit from lsb mult
 
     # adders and sub, not in multiprecision.
-    if z < 4 + log2(k / (2 ** z)):
+    if z < log2(4 + k / (2 ** z)):
         AB_lsb = AB[:k + 1]
     else:
         AB_lsb = AB[:k]
@@ -50,7 +50,7 @@ def domb_barett_mp_redc(A, B, S, M, w, k, n):
     R = mp_subtract(AB_lsb, LS, w, n, k, z)
     R, num_red = mp_subtract_red(R, S, w, k)
 
-    assert num_red < (k / 2 ** z) + 4  # check subtract redundant didn't pass bound
+    assert num_red < (4 + k / 2 ** z)  # check subtract redundant didn't pass bound
 
     return R
 
